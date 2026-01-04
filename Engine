@@ -814,6 +814,21 @@
   "interrupt": "walk_up_and_initiate_dialogue",
   "dynamic_agenda": true,
   "player_consequence": true,
+  "interrupt_rules": {
+    "max_interrupts_per_scene": 2,
+    "cooldown_between_interrupts": 1,
+    "priority_npcs": ["king","rival","npc_with_active_agenda","npc_warning"],
+    "aggression_scale": {
+      "low": ["poor_people","street_merchants"],
+      "medium": ["guards_if_minor_infraction","npc_with_interest_in_player_actions"],
+      "high": ["king","high_officials","armed_rival"]
+    },
+    "forced_reactions": {
+      "high_priority": ["must_respond_or_evade","risk_consequence_if_ignored"],
+      "medium_priority": ["optional_response","may_alert_others"],
+      "low_priority": ["player_choice_only","narrative_hint"]
+    }
+  },
   "integration": {
     "override_scene_suppression": true,
     "agenda_compatible": true,
@@ -865,101 +880,99 @@
   "dialogue_rendering": { "full_lines": true, "include_context": true, "speaker_tag": true }
 },
 
-    "npc_coordination": {
-      "enabled": true,
-      "trigger_condition": "multiple_npcs_engaged_with_player",
-      "mechanics": {
-        "initiative_bonus": "npc_actions_can_chain_in_same_tick",
-        "tactical_advantage": "bonus_to_hit_or_position_if_coordination_successful",
-        "flanking_bonus": "stacked_if_one_npc_distracts_and_another_attacks_from_side",
-        "stack_cap": true
-      },
-      "narrative_feedback": "narrative_hints_match_mechanical_risk"
+"npc_coordination": {
+  "enabled": true,
+  "trigger_condition": "multiple_npcs_engaged_with_player",
+  "mechanics": {
+    "initiative_bonus": "npc_actions_can_chain_in_same_tick",
+    "tactical_advantage": "bonus_to_hit_or_position_if_coordination_successful",
+    "flanking_bonus": "stacked_if_one_npc_distracts_and_another_attacks_from_side",
+    "stack_cap": true
+  },
+  "narrative_feedback": "narrative_hints_match_mechanical_risk"
+},
+"dynamic_risk_tracking": {
+  "enabled": true,
+  "base_risk": "normal_opponent_difficulty",
+  "coordination_bonus": "added_if_multiple_npcs_coordination",
+  "adaptive_bonus": "added_if_short_term_memory_predicts_player_tactics",
+  "max_cap": true,
+  "player_visible": true
+},
+"player_tactical_sovereignty": {
+  "default_state": "player_declared",
+  "rule": "Whenever time, awareness, or distance allows thought, the player may pause, assess, and declare intent, tactics, and priorities before resolution.",
+  "no_forced_reactions": true,
+  "no_auto_tactics": true
+},
+"npc_tactical_sovereignty": {
+  "default_state": "npc_declared",
+  "rule": "NPCs follow same tactical assessment rules as player, deciding actions when they have cognitive/physical capacity to do so.",
+  "reassessment_allowed": true,
+  "reassessment_interval_turns": 1,
+  "no_auto_forced_decisions": true
+},
+"initiative_state_transitions": {
+  "enabled": true,
+  "rules": [
+    {
+      "from": "ambush_state",
+      "to": "engaged_state",
+      "condition": "awareness_increased OR distance_collapsed"
     },
-    "dynamic_risk_tracking": {
-      "enabled": true,
-      "base_risk": "normal_opponent_difficulty",
-      "coordination_bonus": "added_if_multiple_npcs_coordination",
-      "adaptive_bonus": "added_if_short_term_memory_predicts_player_tactics",
-      "max_cap": true,
-      "player_visible": true
+    {
+      "from": "engaged_state",
+      "to": "tactical_pause_state",
+      "condition": "distance_opened OR cover_available OR enemy_hesitation"
     },
-    "player_tactical_sovereignty": {
-      "default_state": "player_declared",
-      "rule": "Whenever time, awareness, or distance allows thought, the player may pause, assess, and declare intent, tactics, and priorities before resolution.",
-      "no_forced_reactions": true,
-      "no_auto_tactics": true
-    },
-    "npc_tactical_sovereignty": {
-      "default_state": "npc_declared",
-      "rule": "NPCs follow same tactical assessment rules as player, deciding actions when they have cognitive/physical capacity to do so.",
-      "reassessment_allowed": true,
-      "reassessment_interval_turns": 1,
-      "no_auto_forced_decisions": true
-    },
-    "initiative_state_transitions": {
-      "enabled": true,
-      "rules": [
-        {
-          "from": "ambush_state",
-          "to": "engaged_state",
-          "condition": "awareness_increased OR distance_collapsed"
-        },
-        {
-          "from": "engaged_state",
-          "to": "tactical_pause_state",
-          "condition": "distance_opened OR cover_available OR enemy_hesitation"
-        },
-        {
-          "from": "tactical_pause_state",
-          "to": "engaged_state",
-          "condition": "distance_closed OR attack_declared"
-        }
-      ]
-    },
-    "initiative_rules": {
-      "ambush_state": {
-        "definition": "Player or NPC unaware OR physically unable to react",
-        "control": "restricted",
-        "resolution_mode": "survival",
-        "engine_authority": "high",
-        "duration": "until awareness or space regained"
-      },
-      "engaged_state": {
-        "definition": "Weapons drawn, distance collapsed, no tactical pause possible",
-        "control": "reactive_only",
-        "allowed_inputs": ["instinctive action","defensive priority","escape attempt"]
-      },
-      "tactical_pause_state": {
-        "definition": "Any moment where distance, cover, allies, or tempo allow thought",
-        "control": "absolute",
-        "allowed_inputs": ["tactical doctrine","target priority","weapon choice","movement plan","risk tolerance","kill / disable / disengage intent"],
-        "engine_role": "execute, not infer"
-      }
-    },
-    "threat_meter": {
-      "enabled": true,
-      "description": "Tracks player risk from NPC coordination and adaptive tactics",
-      "base": 0,
-      "coordination_bonus_per_npc": 5,
-      "memory_adaptive_bonus": 3,
-      "max_cap": 20,
-      "player_feedback": "narrative_hint_only"
-    },
-    "Team_feedback": {
-      "enabled": true,
-      "narrative_match": true,
-      "examples": ["Two of them move in perfect sync — you feel the pressure at your flank."]
-    },
-    "combat_tick_manager": {
-      "enabled": true,
-      "current_tick": 0,
-      "max_ticks": 10,
-      "tick_triggers": ["initiative_check", "player_decision", "npc_decision", "combat_memory_log", "check_end_conditions"],
-      "reassessment_interval": 1,
-      "pause_conditions": ["distance_regained","cover_available","enemy_hesitation","break_in_tempo"]
+    {
+      "from": "tactical_pause_state",
+      "to": "engaged_state",
+      "condition": "distance_closed OR attack_declared"
     }
+  ]
+},
+"initiative_rules": {
+  "ambush_state": {
+    "definition": "Player or NPC unaware OR physically unable to react",
+    "control": "restricted",
+    "resolution_mode": "survival",
+    "engine_authority": "high",
+    "duration": "until awareness or space regained"
+  },
+  "engaged_state": {
+    "definition": "Weapons drawn, distance collapsed, no tactical pause possible",
+    "control": "reactive_only",
+    "allowed_inputs": ["instinctive action","defensive priority","escape attempt"]
+  },
+  "tactical_pause_state": {
+    "definition": "Any moment where distance, cover, allies, or tempo allow thought",
+    "control": "absolute",
+    "allowed_inputs": ["tactical doctrine","target priority","weapon choice","movement plan","risk tolerance","kill / disable / disengage intent"],
+    "engine_role": "execute, not infer"
   }
+},
+"threat_meter": {
+  "enabled": true,
+  "description": "Tracks player risk from NPC coordination and adaptive tactics",
+  "base": 0,
+  "coordination_bonus_per_npc": 5,
+  "memory_adaptive_bonus": 3,
+  "max_cap": 20,
+  "player_feedback": "narrative_hint_only"
+},
+"Team_feedback": {
+  "enabled": true,
+  "narrative_match": true,
+  "examples": ["Two of them move in perfect sync — you feel the pressure at your flank."]
+},
+"combat_tick_manager": {
+  "enabled": true,
+  "current_tick": 0,
+  "max_ticks": 10,
+  "tick_triggers": ["initiative_check", "player_decision", "npc_decision", "combat_memory_log", "check_end_conditions"],
+  "reassessment_interval": 1,
+  "pause_conditions": ["distance_regained","cover_available","enemy_hesitation","break_in_tempo"]
 },
 "tactical_sovereignty_enforcement": {
   "enabled": true,
@@ -973,67 +986,65 @@
   "referenced_for_end_conditions": true,
   "clear_on": ["combat_end"]
 },
-  "social_rules": {
-    "scene_mandatory_if_visible": true,
-    "player_decides_response": true,
-    "npc_rolls_only_determine_opportunity": true,
-    "consequences_hidden_until_resolved": true,
-    "status_changes_allowed": true,
-    "dialogue_fully_played": true,
-    "player_choice_never_overridden": true,
-    "no_emergent_relationship_changes_without_player_action": true
-  },
-  "military_rules": {
-    "macro_strength_tracking": true,
-    "casualties_remove_from_strength": true,
-    "daily_recovery_range": [1,5],
-    "severe_wounded_removed": true,
-    "army_quality_tiers": ["raw","veteran","elite"],
-    "armor_tiers": ["poor","light","medium","heavy"],
-    "weapons_tiers": ["simple","standard","superior","exceptional"],
-    "morale": true,
-    "command_competence": true
-  },
-  "time_rules": {
-    "world_moves_without_player": true,
-    "daily_action_windows": true,
-    "events_interrupt_scenes": true
-  },
-  "memory_tracking": {
-    "event_log": true,
-    "dead_characters": true,
-    "destroyed_houses": true,
-    "diverged_from_canon": true,
-    "active_failed_agendas": true
-  },
-
-"long_term_memory": {
-    "enabled": true,
-    "storage_source": "chapter_summaries",
-    "data_tracked": [
-        "timeline_range",
-        "player_status",
-        "wealth_assets",
-        "named_characters",
-        "relationships_trust",
-        "active_agendas",
-        "completed_agendas",
-        "kills_deaths",
-        "rumors_known",
-        "plans_in_motion"
-    ],
-    "access_rules": {
-        "npc_reads": true,
-        "player_reads": true,
-        "scene_generation_reads": true
-    },
-    "decay_rules": {
-        "minor_events": true,
-        "major_relationships": false,
-        "agenda_outcomes": false
-    }
+"social_rules": {
+  "scene_mandatory_if_visible": true,
+  "player_decides_response": true,
+  "npc_rolls_only_determine_opportunity": true,
+  "consequences_hidden_until_resolved": true,
+  "status_changes_allowed": true,
+  "dialogue_fully_played": true,
+  "player_choice_never_overridden": true,
+  "no_emergent_relationship_changes_without_player_action": true
 },
-
+"military_rules": {
+  "macro_strength_tracking": true,
+  "casualties_remove_from_strength": true,
+  "daily_recovery_range": [1,5],
+  "severe_wounded_removed": true,
+  "army_quality_tiers": ["raw","veteran","elite"],
+  "armor_tiers": ["poor","light","medium","heavy"],
+  "weapons_tiers": ["simple","standard","superior","exceptional"],
+  "morale": true,
+  "command_competence": true
+},
+"time_rules": {
+  "world_moves_without_player": true,
+  "daily_action_windows": true,
+  "events_interrupt_scenes": true
+},
+"memory_tracking": {
+  "event_log": true,
+  "dead_characters": true,
+  "destroyed_houses": true,
+  "diverged_from_canon": true,
+  "active_failed_agendas": true
+},
+"long_term_memory": {
+  "enabled": true,
+  "storage_source": "chapter_summaries",
+  "data_tracked": [
+    "timeline_range",
+    "player_status",
+    "wealth_assets",
+    "named_characters",
+    "relationships_trust",
+    "active_agendas",
+    "completed_agendas",
+    "kills_deaths",
+    "rumors_known",
+    "plans_in_motion"
+  ],
+  "access_rules": {
+    "npc_reads": true,
+    "player_reads": true,
+    "scene_generation_reads": true
+  },
+  "decay_rules": {
+    "minor_events": true,
+    "major_relationships": false,
+    "agenda_outcomes": false
+  }
+},
 "memory_patch": {
   "enabled": true,
   "scene_memory": {
@@ -1053,7 +1064,8 @@
       "npc_line": "append_last_3",
       "interruptions": "append"
     }
-  },
+  }
+},
 
 "fatigue_patch": {
   "enabled": true,
