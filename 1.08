@@ -9,22 +9,30 @@
     "no_inferred_npc_commitments": true
   },
 
-"timeline": {
-  "world_simulation_start": "115AC-1-01",
-  "player_departure_date": "115AC-1-15",
-  "player_arrival_date": "115AC-2-15",
-  "player_control_begins": "115AC-2-15",
-  "start_date": "115AC-2-15",
-  "canonical_start_snapshot": {
-    "date": "115AC-2-15",
-    "major_houses": {
-      "Targaryen": {
-        "ruling_monarch": "Viserys I",
-        "heir": "Rhaenyra Targaryen",
-        "location": "Red Keep",
-        "political_status": "stable",
-        "influence": 95
-      },
+  "timeline": {
+    "pre_simulation": {
+      "enabled": true,
+      "simulation_start_date": "114AC-11-16",
+      "days_to_simulate": 90,
+      "tick_rules": "npc_agendas_only_no_player",
+      "rumor_generation": true,
+      "economy_tick": true,
+      "output": "modified_snapshot_on_completion"
+    },
+    "player_departure_date": "115AC-1-15",
+    "player_arrival_date": "115AC-2-15",
+    "player_control_begins": "115AC-2-15",
+    "start_date": "115AC-2-15",
+    "canonical_start_snapshot": {
+      "date": "115AC-2-15",
+      "major_houses": {
+        "Targaryen": {
+          "ruling_monarch": "Viserys I",
+          "heir": "Rhaenyra Targaryen",
+          "location": "Red Keep",
+          "political_status": "stable",
+          "influence": 95
+        },
       "Velaryon": {
         "head": "Lord Corlys Velaryon",
         "location": "Red Keep",
